@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct ShizzNeededApp: App {
+struct Shizzneeded_Watch_AppApp: App {
     let modelContainer: ModelContainer
 
     init() {

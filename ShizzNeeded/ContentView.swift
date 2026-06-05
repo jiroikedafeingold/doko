@@ -1,24 +1,13 @@
-//
-//  ContentView.swift
-//  ShizzNeeded
-//
-//  Created by Jiro on 6/4/26.
-//
-
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+        ListView()
     }
 }
 
 #Preview {
     ContentView()
+        .modelContainer(for: ShoppingItem.self, inMemory: true)
 }
