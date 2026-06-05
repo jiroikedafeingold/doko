@@ -87,7 +87,7 @@ First release.
 ## Privacy "Privacy Policy URL"
 
 ```
-https://feingold5.github.io/doko/#privacy
+https://jiroikedafeingold.github.io/doko/#privacy
 ```
 
 *(Update this to match the actual GitHub Pages URL once enabled.)*
@@ -95,7 +95,7 @@ https://feingold5.github.io/doko/#privacy
 ## Support URL
 
 ```
-https://feingold5.github.io/doko/
+https://jiroikedafeingold.github.io/doko/
 ```
 
 ## Marketing URL (optional)
