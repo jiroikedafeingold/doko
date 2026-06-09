@@ -10,7 +10,7 @@ struct ShizzNeededApp: App {
             let schema = Schema([ShoppingItem.self])
             let config = ModelConfiguration(
                 schema: schema,
-                cloudKitDatabase: .private("iCloud.com.feingold5.ShizzNeeded")
+                cloudKitDatabase: .private("iCloud.com.jirofeingold.doko")
             )
             modelContainer = try ModelContainer(for: schema, configurations: config)
         } catch {
