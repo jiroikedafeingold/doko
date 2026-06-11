@@ -36,7 +36,7 @@ struct StoreView: View {
             ContentUnavailableView(
                 "No stores nearby",
                 systemImage: "location.slash",
-                description: Text("ShizzNeeded couldn't identify a store at your location.")
+                description: Text("I can't find any stores within a \(NearbyStoreDetector.searchRadiusFeet) foot radius.")
             )
         } else if let store = selectedStore {
             itemList(for: store)

@@ -4,14 +4,21 @@ import MapKit
 import Observation
 
 /// One-shot location + MapKit POI search. Asks for location only when the user
-/// taps "What's here?", returns whatever stores are within ~100m, and maps
-/// them onto our `StoreCategory` values.
+/// taps "What's here?", returns whatever stores are within `searchRadiusFeet`,
+/// and maps them onto our `StoreCategory` values.
 @MainActor
 @Observable
 final class NearbyStoreDetector: NSObject {
     var nearbyStores: [NearbyStore] = []
     var isSearching: Bool = false
     var lastError: String?
+
+    /// Single source of truth for the search radius. The store-search distance
+    /// and any user-facing copy both derive from this so they never disagree.
+    static let searchRadiusFeet: Int = 250
+    static var searchRadiusMeters: CLLocationDistance {
+        Double(searchRadiusFeet) * 0.3048
+    }
 
     @ObservationIgnored private let locationManager = CLLocationManager()
     @ObservationIgnored private var locationContinuation: CheckedContinuation<CLLocation, Error>?
@@ -83,11 +90,10 @@ final class NearbyStoreDetector: NSObject {
     // MARK: - POI search
 
     private func searchPOIs(near location: CLLocation) async throws -> [NearbyStore] {
-        // ~75m ≈ within a city block. Tight enough that only stores
-        // you're at or right next to show up, with some slack for GPS drift.
+        // Tight enough that only stores you're at or right next to show up.
         let request = MKLocalPointsOfInterestRequest(
             center: location.coordinate,
-            radius: 75
+            radius: Self.searchRadiusMeters
         )
         request.pointOfInterestFilter = MKPointOfInterestFilter(
             including: StoreCategory.poiSearchCategories
