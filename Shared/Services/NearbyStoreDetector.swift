@@ -98,7 +98,16 @@ final class NearbyStoreDetector: NSObject {
         request.pointOfInterestFilter = MKPointOfInterestFilter(
             including: StoreCategory.poiSearchCategories
         )
-        let response = try await MKLocalSearch(request: request).start()
+
+        let response: MKLocalSearch.Response
+        do {
+            response = try await MKLocalSearch(request: request).start()
+        } catch let error as MKError where error.code == .placemarkNotFound {
+            // "Nothing found here" is a normal outcome, not a failure — surface
+            // it as an empty result so the user sees the friendly no-stores copy.
+            return []
+        }
+
         let stores: [(NearbyStore, CLLocationDistance)] = response.mapItems.compactMap { item in
             let categories = StoreCategory.categories(for: item)
             guard !categories.isEmpty else { return nil }
