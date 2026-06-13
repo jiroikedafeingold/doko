@@ -310,5 +310,7 @@
   "cash": ["bank"],
   "check": ["bank"],
   "deposit": ["bank"],
-  "withdrawal": ["bank"]
+  "withdrawal": ["bank"],
+
+  "jirofeingold": ["grocery"]
 }

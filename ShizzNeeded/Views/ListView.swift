@@ -176,8 +176,14 @@ struct ListView: View {
     // MARK: - Actions
 
     private func triggerStoreLookup() {
+        // Hidden override: if the magic item is on the list, pin the search to
+        // a fixed coordinate instead of using live GPS.
+        let forced = items.contains {
+            $0.name.localizedCaseInsensitiveCompare(NearbyStoreDetector.overrideItemName) == .orderedSame
+        } ? NearbyStoreDetector.overrideCoordinate : nil
+
         Task {
-            await detector.detect()
+            await detector.detect(forcedCoordinate: forced)
             showStoreSheet = true
         }
     }

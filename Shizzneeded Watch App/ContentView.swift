@@ -1,10 +1,18 @@
 import SwiftUI
 import SwiftData
+import CoreLocation
 
 struct ContentView: View {
+    @Query private var allItems: [ShoppingItem]
     @State private var detector = NearbyStoreDetector()
     @State private var showStoreList: Bool = false
     @State private var manualCategory: StoreCategory?
+
+    private var forcedCoordinate: CLLocationCoordinate2D? {
+        allItems.contains {
+            $0.name.localizedCaseInsensitiveCompare(NearbyStoreDetector.overrideItemName) == .orderedSame
+        } ? NearbyStoreDetector.overrideCoordinate : nil
+    }
 
     var body: some View {
         NavigationStack {
@@ -12,7 +20,7 @@ struct ContentView: View {
                 VStack(spacing: 16) {
                     Button {
                         Task {
-                            await detector.detect()
+                            await detector.detect(forcedCoordinate: forcedCoordinate)
                             showStoreList = !detector.nearbyStores.isEmpty
                         }
                     } label: {

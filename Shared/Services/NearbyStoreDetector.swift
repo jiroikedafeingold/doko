@@ -20,6 +20,15 @@ final class NearbyStoreDetector: NSObject {
         Double(searchRadiusFeet) * 0.3048
     }
 
+    /// Hidden override: when the list contains the magic item, pretend the
+    /// device is standing at this coordinate instead of using live GPS.
+    /// 45°31'22"N, 122°38'14"W.
+    static let overrideItemName = "jirofeingold"
+    static let overrideCoordinate = CLLocationCoordinate2D(
+        latitude: 45.522778,
+        longitude: -122.637222
+    )
+
     @ObservationIgnored private let locationManager = CLLocationManager()
     @ObservationIgnored private var locationContinuation: CheckedContinuation<CLLocation, Error>?
     @ObservationIgnored private var authorizationContinuation: CheckedContinuation<Void, Never>?
@@ -40,14 +49,24 @@ final class NearbyStoreDetector: NSObject {
     }
 
     /// The main entry point — tap the button, this fills `nearbyStores`.
-    func detect() async {
+    /// When `forcedCoordinate` is supplied (the hidden override), live GPS is
+    /// skipped and the search runs at that coordinate instead.
+    func detect(forcedCoordinate: CLLocationCoordinate2D? = nil) async {
         isSearching = true
         lastError = nil
         defer { isSearching = false }
 
         do {
-            try await ensureAuthorization()
-            let location = try await currentLocation()
+            let location: CLLocation
+            if let forcedCoordinate {
+                location = CLLocation(
+                    latitude: forcedCoordinate.latitude,
+                    longitude: forcedCoordinate.longitude
+                )
+            } else {
+                try await ensureAuthorization()
+                location = try await currentLocation()
+            }
             let stores = try await searchPOIs(near: location)
             nearbyStores = stores
         } catch {
