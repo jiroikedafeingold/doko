@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CoreLocation
 
 struct ListView: View {
     @Environment(\.modelContext) private var modelContext
@@ -10,10 +11,22 @@ struct ListView: View {
     @State private var showStoreSheet: Bool = false
     @State private var detector = NearbyStoreDetector()
     @State private var showOnboarding: Bool = !UserDefaults.standard.bool(forKey: Self.onboardingFlag)
+    @State private var showDemoConfig: Bool = false
+    @AppStorage("doko.demoLatitude") private var demoLatitude: Double = NearbyStoreDetector.overrideCoordinate.latitude
+    @AppStorage("doko.demoLongitude") private var demoLongitude: Double = NearbyStoreDetector.overrideCoordinate.longitude
     @FocusState private var entryFocused: Bool
 
     private static let onboardingFlag = "kokoaru.hasSeenOnboarding.v1"
     private static let purgeWindow: TimeInterval = 2 * 24 * 60 * 60 // 2 days
+
+    /// True when the magic demo item is on the list and not yet purchased.
+    /// Deleting it or checking it off exits demo mode.
+    private var demoModeActive: Bool {
+        items.contains {
+            !$0.isPurchased
+                && $0.name.localizedCaseInsensitiveCompare(NearbyStoreDetector.overrideItemName) == .orderedSame
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -27,13 +40,19 @@ struct ListView: View {
                     if entryFocused { entryFocused = false }
                 }
             )
-            .navigationTitle("Doko?")
+            .navigationTitle(demoModeActive ? "doko (demo mode)" : "Doko?")
             .navigationSubtitle("どこ")
             .sheet(isPresented: $showStoreSheet) {
                 StoreView(detector: detector)
             }
+            .sheet(isPresented: $showDemoConfig) {
+                DemoCoordinateSheet(latitude: $demoLatitude, longitude: $demoLongitude)
+            }
             .fullScreenCover(isPresented: $showOnboarding) {
                 OnboardingView(isPresented: $showOnboarding)
+            }
+            .onChange(of: demoModeActive) { _, isActive in
+                if isActive { showDemoConfig = true }
             }
             .task {
                 purgeOldPurchased()
@@ -176,11 +195,11 @@ struct ListView: View {
     // MARK: - Actions
 
     private func triggerStoreLookup() {
-        // Hidden override: if the magic item is on the list, pin the search to
-        // a fixed coordinate instead of using live GPS.
-        let forced = items.contains {
-            $0.name.localizedCaseInsensitiveCompare(NearbyStoreDetector.overrideItemName) == .orderedSame
-        } ? NearbyStoreDetector.overrideCoordinate : nil
+        // Demo mode: if the magic item is on the list, pin the search to the
+        // user-chosen coordinate instead of using live GPS.
+        let forced = demoModeActive
+            ? CLLocationCoordinate2D(latitude: demoLatitude, longitude: demoLongitude)
+            : nil
 
         Task {
             await detector.detect(forcedCoordinate: forced)
@@ -311,6 +330,61 @@ private struct CategoryChip: View {
                 .strokeBorder(category.tintColor.opacity(0.25), lineWidth: 0.5)
         )
         .foregroundStyle(category.tintColor)
+    }
+}
+
+// MARK: - Demo coordinate entry
+
+private struct DemoCoordinateSheet: View {
+    @Binding var latitude: Double
+    @Binding var longitude: Double
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var latText: String = ""
+    @State private var lonText: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    LabeledContent("Latitude") {
+                        TextField("Latitude", text: $latText)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.numbersAndPunctuation)
+                            .autocorrectionDisabled()
+                    }
+                    LabeledContent("Longitude") {
+                        TextField("Longitude", text: $lonText)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.numbersAndPunctuation)
+                            .autocorrectionDisabled()
+                    }
+                } header: {
+                    Text("Demo location")
+                } footer: {
+                    Text("\"What's Here?\" will search around these coordinates instead of your real location while the demo item is on your list.")
+                }
+            }
+            .navigationTitle("Demo Mode")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Use") {
+                        if let lat = Double(latText) { latitude = lat }
+                        if let lon = Double(lonText) { longitude = lon }
+                        dismiss()
+                    }
+                    .disabled(Double(latText) == nil || Double(lonText) == nil)
+                }
+            }
+            .onAppear {
+                latText = String(latitude)
+                lonText = String(longitude)
+            }
+        }
     }
 }
 

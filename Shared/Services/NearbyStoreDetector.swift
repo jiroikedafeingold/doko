@@ -20,10 +20,10 @@ final class NearbyStoreDetector: NSObject {
         Double(searchRadiusFeet) * 0.3048
     }
 
-    /// Hidden override: when the list contains the magic item, pretend the
-    /// device is standing at this coordinate instead of using live GPS.
-    /// 45°31'22"N, 122°38'14"W.
-    static let overrideItemName = "jirofeingold"
+    /// Hidden demo mode: when the list contains this magic item, the user can
+    /// pin the search to a coordinate they choose instead of using live GPS.
+    /// The default coordinate is 45°31'22"N, 122°38'14"W.
+    static let overrideItemName = "koko"
     static let overrideCoordinate = CLLocationCoordinate2D(
         latitude: 45.522778,
         longitude: -122.637222
