@@ -17,9 +17,25 @@ enum StoreCategory: String, CaseIterable, Codable, Hashable, Identifiable {
     case bookstore
     case gasStation
     case postOffice
+    case jewelry
+    case furniture
+    case toys
+    case sportingGoods
+    case music
+    case craft
+    case beauty
+    case shoes
+    case homeGoods
+    case autoParts
     case uncategorized
 
     var id: String { rawValue }
+
+    /// Every "real" category — excludes the `uncategorized` sentinel. Useful for
+    /// pickers and for the LLM token set.
+    static var selectable: [StoreCategory] {
+        allCases.filter { $0 != .uncategorized }
+    }
 
     var displayName: String {
         switch self {
@@ -38,6 +54,16 @@ enum StoreCategory: String, CaseIterable, Codable, Hashable, Identifiable {
         case .bookstore:     "Bookstore"
         case .gasStation:    "Gas Station"
         case .postOffice:    "Post Office"
+        case .jewelry:       "Jewelry"
+        case .furniture:     "Furniture"
+        case .toys:          "Toy Store"
+        case .sportingGoods: "Sporting Goods"
+        case .music:         "Music Store"
+        case .craft:         "Craft Store"
+        case .beauty:        "Beauty"
+        case .shoes:         "Shoe Store"
+        case .homeGoods:     "Home Goods"
+        case .autoParts:     "Auto Parts"
         case .uncategorized: "Uncategorized"
         }
     }
@@ -59,6 +85,16 @@ enum StoreCategory: String, CaseIterable, Codable, Hashable, Identifiable {
         case .bookstore:     "book"
         case .gasStation:    "fuelpump"
         case .postOffice:    "envelope"
+        case .jewelry:       "diamond"
+        case .furniture:     "sofa"
+        case .toys:          "teddybear"
+        case .sportingGoods: "sportscourt"
+        case .music:         "guitars"
+        case .craft:         "paintpalette"
+        case .beauty:        "sparkles"
+        case .shoes:         "shoe"
+        case .homeGoods:     "house"
+        case .autoParts:     "car"
         case .uncategorized: "questionmark.circle"
         }
     }
@@ -80,6 +116,16 @@ enum StoreCategory: String, CaseIterable, Codable, Hashable, Identifiable {
         case .bookstore:     .teal
         case .gasStation:    .secondary
         case .postOffice:    .blue
+        case .jewelry:       .indigo
+        case .furniture:     .brown
+        case .toys:          .red
+        case .sportingGoods: .green
+        case .music:         .purple
+        case .craft:         .orange
+        case .beauty:        .pink
+        case .shoes:         .cyan
+        case .homeGoods:     .teal
+        case .autoParts:     .gray
         case .uncategorized: .gray
         }
     }

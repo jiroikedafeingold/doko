@@ -38,6 +38,9 @@ final class NearbyStoreDetector: NSObject {
         let name: String
         let categories: [StoreCategory]
         let coordinate: CLLocationCoordinate2D
+        /// True when we couldn't determine what the store sells, so the whole
+        /// list should be shown rather than a wrong, narrow guess.
+        var isGeneral: Bool = false
 
         func hash(into hasher: inout Hasher) { hasher.combine(id) }
         static func == (lhs: NearbyStore, rhs: NearbyStore) -> Bool { lhs.id == rhs.id }
@@ -127,18 +130,38 @@ final class NearbyStoreDetector: NSObject {
             return []
         }
 
-        let stores: [(NearbyStore, CLLocationDistance)] = response.mapItems.compactMap { item in
-            let categories = StoreCategory.categories(for: item)
-            guard !categories.isEmpty else { return nil }
+        var stores: [(NearbyStore, CLLocationDistance)] = []
+        for item in response.mapItems {
+            // Deterministic keyword/POI match first (cheap, offline).
+            var categories = StoreCategory.deterministicCategories(for: item)
+            var isGeneral = false
+
+            // If we couldn't tell, ask the on-device model to reason about the
+            // store name. If that's also inconclusive, treat it as a general
+            // store (the whole list shows) rather than guessing "department".
+            if categories.isEmpty {
+                let inferred = await StoreClassifier.shared.classify(
+                    name: item.name ?? "",
+                    poiCategory: item.pointOfInterestCategory
+                )
+                if inferred.isEmpty {
+                    categories = StoreCategory.selectable
+                    isGeneral = true
+                } else {
+                    categories = inferred
+                }
+            }
+
             let coord = item.placemark.coordinate
             let distance = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
                 .distance(from: location)
             let store = NearbyStore(
                 name: item.name ?? "Unknown Place",
                 categories: categories,
-                coordinate: coord
+                coordinate: coord,
+                isGeneral: isGeneral
             )
-            return (store, distance)
+            stores.append((store, distance))
         }
         return stores
             .sorted { $0.1 < $1.1 }

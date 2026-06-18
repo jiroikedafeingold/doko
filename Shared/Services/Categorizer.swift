@@ -44,9 +44,7 @@ actor Categorizer {
                 to: prompt,
                 generating: ItemClassification.self
             )
-            return response.content.categories.compactMap {
-                StoreCategory(rawValue: $0.rawValue)
-            }
+            return response.content.categories.compactMap(\.storeCategory)
         } catch {
             return []
         }
@@ -61,13 +59,6 @@ actor Categorizer {
 struct ItemClassification {
     @Guide(description: "Up to 3 most relevant store categories that typically sell this item",
            .maximumCount(3))
-    let categories: [LLMStoreCategory]
-}
-
-@Generable
-enum LLMStoreCategory: String, Codable {
-    case grocery, pharmacy, hardware, bank, department,
-         electronics, officeSupply, pet, garden, liquor,
-         bakery, clothing, bookstore, gasStation, postOffice
+    let categories: [CategoryToken]
 }
 #endif

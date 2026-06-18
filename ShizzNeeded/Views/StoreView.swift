@@ -60,7 +60,9 @@ struct StoreView: View {
                                 Text(store.name)
                                     .font(.headline)
                                     .foregroundStyle(.primary)
-                                Text(store.categories.map(\.displayName).joined(separator: ", "))
+                                Text(store.isGeneral
+                                     ? "General store"
+                                     : store.categories.map(\.displayName).joined(separator: ", "))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -85,7 +87,9 @@ struct StoreView: View {
                 ContentUnavailableView(
                     "Nothing to grab here",
                     systemImage: "checkmark.seal",
-                    description: Text("Nothing on your list is sold at \(store.categories.map(\.displayName).joined(separator: " / ")).")
+                    description: Text(store.isGeneral
+                        ? "Nothing on your list is left to pick up."
+                        : "Nothing on your list is sold at \(store.categories.map(\.displayName).joined(separator: " / ")).")
                 )
             } else {
                 List {
@@ -94,16 +98,23 @@ struct StoreView: View {
                             StoreItemRow(item: item)
                         }
                     } header: {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 6) {
-                                ForEach(store.categories) { cat in
-                                    Label(cat.displayName, systemImage: cat.symbolName)
-                                        .font(.caption.weight(.semibold))
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(cat.tintColor.opacity(0.18))
-                                        .foregroundStyle(cat.tintColor)
-                                        .clipShape(Capsule())
+                        if store.isGeneral {
+                            Label("Showing your whole list", systemImage: "list.bullet")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .textCase(nil)
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(store.categories) { cat in
+                                        Label(cat.displayName, systemImage: cat.symbolName)
+                                            .font(.caption.weight(.semibold))
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(cat.tintColor.opacity(0.18))
+                                            .foregroundStyle(cat.tintColor)
+                                            .clipShape(Capsule())
+                                    }
                                 }
                             }
                         }
