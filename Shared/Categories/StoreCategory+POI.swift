@@ -9,95 +9,81 @@ extension StoreCategory {
         switch self {
         case .grocery:       [.foodMarket]
         case .pharmacy:      [.pharmacy]
-        case .hardware:      [.store]
         case .bank:          [.bank, .atm]
-        case .department:    [.store]
-        case .electronics:   [.store]
-        case .officeSupply:  [.store]
-        case .pet:           [.store, .animalService]
-        case .garden:        [.store]
-        case .liquor:        [.store]
         case .bakery:        [.bakery]
-        case .clothing:      [.store]
-        case .bookstore:     [.store]
-        case .gasStation:    [.gasStation, .evCharger]
-        case .postOffice:    [.postOffice, .mailbox]
-        case .jewelry:       [.store]
-        case .furniture:     [.store]
-        case .toys:          [.store]
-        case .sportingGoods: [.store]
-        case .music:         [.store]
-        case .craft:         [.store]
-        case .beauty:        [.store, .beauty]
-        case .shoes:         [.store]
-        case .homeGoods:     [.store]
-        case .autoParts:     [.store]
+        case .gasStation:    [.gasStation]
+        case .postOffice:    [.postOffice]
+        // Everything else is the generic `.store` bucket — resolved by name/LLM.
+        case .hardware, .department, .electronics, .officeSupply, .pet, .garden,
+             .liquor, .clothing, .bookstore, .jewelry, .furniture, .toys,
+             .sportingGoods, .music, .craft, .beauty, .shoes, .homeGoods, .autoParts:
+            [.store]
         case .uncategorized: []
         }
     }
 
-    /// Lowercased substrings hinting at this category when MapKit only reports
-    /// the broad `.store` POI bucket.
+    /// Lowercased substrings hinting at this specific category when MapKit only
+    /// reports the broad `.store` bucket. These cover *specialty* retailers; broad
+    /// formats (supercenters, department stores) are handled in `StoreClassifier`.
     var nameHints: [String] {
         switch self {
         case .hardware:    ["hardware", "home depot", "lowe", "ace hardware", "menards", "true value"]
-        case .department:  ["target", "walmart", "kmart", "macy", "nordstrom", "kohl", "costco", "sam's club", "bj's", "department store"]
+        case .department:  ["macy", "nordstrom", "kohl", "jcpenney", "jc penney", "dillard", "bloomingdale", "department store"]
         case .electronics: ["best buy", "apple store", "micro center", "fry's", "electronics", "radioshack"]
-        case .officeSupply: ["staples", "office depot", "officemax"]
-        case .pet:         ["petco", "petsmart", "pet supplies", "pet store"]
-        case .garden:      ["garden", "nursery", "lawn"]
+        case .officeSupply: ["staples", "office depot", "officemax", "office supply"]
+        case .pet:         ["petco", "petsmart", "pet supplies", "pet store", "pet shop"]
+        case .garden:      ["garden center", "plant nursery", "lawn & garden"]
         case .liquor:      ["liquor", "wine shop", "spirits", "bottle shop"]
         case .bookstore:   ["barnes", "books-a-million", "bookstore", "bookshop", "powell's books"]
-        case .clothing:    ["gap", "h&m", "uniqlo", "old navy", "zara", "clothing", "apparel", "outfitters"]
-        case .pharmacy:    ["cvs", "walgreens", "rite aid", "duane reade", "pharmacy"]
+        case .clothing:    ["gap outlet", "h&m", "uniqlo", "old navy", "zara", "clothing store", "apparel", "outfitters"]
+        case .pharmacy:    ["cvs", "walgreens", "rite aid", "duane reade", "pharmacy", "drugstore", "drug store"]
         case .grocery:     ["whole foods", "trader joe", "kroger", "safeway", "publix", "wegmans",
-                            "aldi", "stop & shop", "ralphs", "vons", "albertsons", "shoprite", "h-e-b"]
-        case .jewelry:     ["jewelry", "jeweler", "jewellers", "tiffany", "kay jewelers", "zales", "pandora", "claire's"]
-        case .furniture:   ["furniture", "ikea", "ashley", "west elm", "crate & barrel", "crate and barrel", "pottery barn", "la-z-boy", "mattress"]
-        case .toys:        ["toys", "toy store", "toys r us", "build-a-bear", "lego store"]
+                            "aldi", "stop & shop", "ralphs", "vons", "albertsons", "shoprite", "h-e-b",
+                            "supermarket", "grocery", "bodega", "mini mart", "minimart", "convenience store"]
+        case .jewelry:     ["jewelry", "jeweler", "jewellers", "tiffany", "kay jewelers", "zales", "pandora"]
+        case .furniture:   ["furniture", "ikea", "ashley furniture", "west elm", "crate & barrel", "crate and barrel", "pottery barn", "la-z-boy", "mattress"]
+        case .toys:        ["toy store", "toys r us", "build-a-bear", "lego store"]
         case .sportingGoods: ["sporting goods", "dick's", "rei", "academy sports", "sports authority", "big 5", "bass pro", "cabela"]
-        case .music:       ["guitar center", "sam ash", "music store", "instruments", "sweetwater"]
+        case .music:       ["guitar center", "sam ash", "music store", "musical instruments", "sweetwater"]
         case .craft:       ["michaels", "jo-ann", "joann", "hobby lobby", "craft store", "fabric store"]
         case .beauty:      ["sephora", "ulta", "sally beauty", "cosmetics", "beauty supply"]
-        case .shoes:       ["foot locker", "footlocker", "famous footwear", "dsw", "payless", "shoe store", "sneaker"]
+        case .shoes:       ["foot locker", "footlocker", "famous footwear", "dsw", "payless", "shoe store"]
         case .homeGoods:   ["homegoods", "home goods", "bed bath", "container store", "pier 1", "pier one", "home decor"]
-        case .autoParts:   ["autozone", "o'reilly", "advance auto", "napa auto", "pep boys", "auto parts", "car parts"]
+        case .autoParts:   ["autozone", "o'reilly auto", "advance auto", "napa auto", "pep boys", "auto parts", "car parts"]
         default: []
         }
     }
 
-    /// The full set of POI categories we ask MapKit to return when scanning
-    /// what's near the user.
+    /// The POI categories we ask MapKit to return. Deliberately excludes
+    /// service-type POIs (EV chargers, mailboxes, salons, vets) that aren't
+    /// shopping-errand destinations.
     static let poiSearchCategories: [MKPointOfInterestCategory] = [
-        .foodMarket, .pharmacy, .bank, .atm, .store, .gasStation,
-        .postOffice, .bakery, .evCharger, .animalService, .mailbox, .beauty
+        .foodMarket, .pharmacy, .bank, .atm, .store, .gasStation, .postOffice, .bakery
     ]
 
-    /// Deterministic, offline first pass at describing a MapKit map item. Uses
-    /// the direct POI mapping plus name-hint keyword matching. Returns an empty
-    /// array when nothing matches — the caller then asks the on-device model or
-    /// treats the place as a general store, rather than guessing "department".
-    static func deterministicCategories(for mapItem: MKMapItem) -> [StoreCategory] {
-        let name = (mapItem.name ?? "").lowercased()
-        let poi = mapItem.pointOfInterestCategory
-        var matches: Set<StoreCategory> = []
-
-        // 1. Direct POI matches (skip the broad `.store` bucket — needs name hint).
-        if let poi {
-            for category in StoreCategory.selectable {
-                if category.pointsOfInterest.contains(poi), poi != .store {
-                    matches.insert(category)
-                }
-            }
+    /// A confident category from a *specific* POI bucket. Returns nil for the
+    /// broad `.store` bucket (which needs name/LLM analysis).
+    static func directCategory(for poi: MKPointOfInterestCategory?) -> StoreCategory? {
+        switch poi {
+        case .pharmacy:           .pharmacy
+        case .bank, .atm:         .bank
+        case .gasStation:         .gasStation
+        case .postOffice:         .postOffice
+        case .bakery:             .bakery
+        case .foodMarket:         .grocery
+        default:                  nil
         }
+    }
 
-        // 2. Name-hint matches. Always applied (catches chains MapKit miscategorizes).
+    /// Specialty categories whose name hints appear in the store name.
+    static func nameHintCategories(for name: String) -> [StoreCategory] {
+        let lowered = name.lowercased()
+        var matches: Set<StoreCategory> = []
         for category in StoreCategory.selectable where !category.nameHints.isEmpty {
-            if category.nameHints.contains(where: { name.contains($0) }) {
+            if category.nameHints.contains(where: { lowered.contains($0) }) {
                 matches.insert(category)
             }
         }
-
         return Array(matches)
     }
 }

@@ -132,24 +132,24 @@ final class NearbyStoreDetector: NSObject {
 
         var stores: [(NearbyStore, CLLocationDistance)] = []
         for item in response.mapItems {
-            // Deterministic keyword/POI match first (cheap, offline).
-            var categories = StoreCategory.deterministicCategories(for: item)
-            var isGeneral = false
+            let verdict = await StoreClassifier.shared.classify(
+                name: item.name ?? "",
+                poiCategory: item.pointOfInterestCategory
+            )
 
-            // If we couldn't tell, ask the on-device model to reason about the
-            // store name. If that's also inconclusive, treat it as a general
-            // store (the whole list shows) rather than guessing "department".
-            if categories.isEmpty {
-                let inferred = await StoreClassifier.shared.classify(
-                    name: item.name ?? "",
-                    poiCategory: item.pointOfInterestCategory
-                )
-                if inferred.isEmpty {
-                    categories = StoreCategory.selectable
-                    isGeneral = true
-                } else {
-                    categories = inferred
-                }
+            let categories: [StoreCategory]
+            let isGeneral: Bool
+            switch verdict {
+            case .excluded:
+                // Not a shopping-list errand (specialty-food, services, or too
+                // unclear) — leave it out entirely.
+                continue
+            case .general:
+                categories = StoreCategory.selectable
+                isGeneral = true
+            case .specific(let cats):
+                categories = cats
+                isGeneral = false
             }
 
             let coord = item.placemark.coordinate
