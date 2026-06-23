@@ -40,10 +40,12 @@ actor StoreClassifier {
     private func resolve(name: String, poiCategory: MKPointOfInterestCategory?) async -> StoreVerdict {
         let lowered = name.lowercased()
 
-        // 1. Hard exclusions by name — specialty-food vendors and services that
-        //    sell food/goods but aren't a shopping-list errand. Runs first so it
-        //    overrides even a MapKit `.foodMarket` mislabel (e.g. an ice cream shop).
-        if Self.excludedWords.contains(where: { lowered.contains($0) }) {
+        // 1. Hard exclusions by name — specialty-food vendors, services, and EV
+        //    chargers that aren't a shopping-list errand. Runs first so it
+        //    overrides MapKit mislabels (an ice cream shop tagged `.foodMarket`,
+        //    or a ChargePoint stall tagged `.gasStation`).
+        if Self.excludedWords.contains(where: { lowered.contains($0) })
+            || Self.evChargingWords.contains(where: { lowered.contains($0) }) {
             return .excluded
         }
 
@@ -123,25 +125,30 @@ actor StoreClassifier {
     - generalMerchandise: a big-box, supercenter, warehouse, dollar, or variety \
       store that stocks a wide everyday range across many categories, usually \
       including groceries (e.g. Walmart, Target, Costco, dollar stores).
-    - departmentStore: sells a broad range of soft goods — clothing, shoes, home \
-      goods, beauty, jewelry — but not groceries or hardware (e.g. Macy's, \
-      Nordstrom, Kohl's, off-price stores).
+    - departmentStore: a LARGE store with multiple full departments, or a \
+      well-known off-price chain (e.g. Macy's, Nordstrom, Kohl's, TJ Maxx). \
+      Thrift, vintage, consignment, resale, and small boutique shops are NOT \
+      department stores — classify those as specialtyRetail (usually clothing).
     - grocery: a GENERAL food retailer stocking a broad range of groceries and \
       household staples — supermarket, market, bodega, corner store, mini-mart, \
       or convenience store.
     - pharmacy: a drugstore.
     - specialtyRetail: primarily sells goods in one or a few specific categories \
       from the allowed list (e.g. hardware store, jeweler, bookstore, pet store, \
-      electronics store, sporting goods). Provide those categories.
+      electronics store, sporting goods, a vintage clothing shop). Provide those \
+      categories.
     - excluded: anything else. This includes restaurants, cafés, bars, and \
       single-food vendors like ice cream, coffee, candy, juice, donut, or deli \
-      shops; all service businesses (salons, gyms, repair shops, clinics, banks \
-      are fine but spas/tattoo/dry cleaners are not); and any store too unclear \
-      to place.
+      shops; all service businesses (salons, gyms, repair shops, clinics, spas, \
+      tattoo parlors, dry cleaners); and any store too unclear to place.
 
     Rules:
     - A store must sell a real RANGE of a category's goods to earn it. A shop \
       selling only one or two food items is NOT grocery — it is excluded.
+    - A business named only after a person (e.g. "Jane Smith", "Brianna \
+      Beaudoin") with no retail-type word, and any freelance or by-appointment \
+      professional (makeup artist, photographer, hair or nail stylist, \
+      esthetician, personal trainer), is a service — exclude it.
     - Prefer excluded when uncertain. Leaving a store out is better than guessing.
     - Only use specialtyRetail categories the store is clearly built around.
     """
@@ -160,7 +167,17 @@ actor StoreClassifier {
         "pub", "tavern", "brewery", "salon", "spa", "nail", "barber", "gym",
         "fitness", "yoga", "pilates", "tattoo", "massage", "dry clean",
         "laundromat", "repair", "mechanic", "auto repair", "car wash",
-        "dentist", "dental", "clinic", "urgent care", "veterinar", "animal hospital"
+        "dentist", "dental", "clinic", "urgent care", "veterinar", "animal hospital",
+        "makeup artist", "esthetician", "eyelash", "lash bar", "brow bar",
+        "waxing", "permanent makeup", "photography", "photographer",
+        "hair stylist", "hairstylist", "personal trainer"
+    ]
+
+    /// EV charging networks/stalls — MapKit often tags these `.gasStation`, but
+    /// they sell none of the fuel-aisle items, so exclude them.
+    static let evChargingWords: [String] = [
+        "chargepoint", "ev charging", "ev charger", "charging station",
+        "supercharger", "electrify america", "evgo", "blink charging"
     ]
 
     static let generalMerchandiseChains: [String] = [

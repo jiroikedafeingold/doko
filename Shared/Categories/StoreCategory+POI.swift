@@ -35,7 +35,8 @@ extension StoreCategory {
         case .garden:      ["garden center", "plant nursery", "lawn & garden"]
         case .liquor:      ["liquor", "wine shop", "spirits", "bottle shop"]
         case .bookstore:   ["barnes", "books-a-million", "bookstore", "bookshop", "powell's books"]
-        case .clothing:    ["gap outlet", "h&m", "uniqlo", "old navy", "zara", "clothing store", "apparel", "outfitters"]
+        case .clothing:    ["gap outlet", "h&m", "uniqlo", "old navy", "zara", "clothing store",
+                            "apparel", "outfitters", "thrift", "consignment", "resale"]
         case .pharmacy:    ["cvs", "walgreens", "rite aid", "duane reade", "pharmacy", "drugstore", "drug store"]
         case .grocery:     ["whole foods", "trader joe", "kroger", "safeway", "publix", "wegmans",
                             "aldi", "stop & shop", "ralphs", "vons", "albertsons", "shoprite", "h-e-b",
