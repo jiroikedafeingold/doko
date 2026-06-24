@@ -63,7 +63,8 @@ extension StoreCategory {
     ]
 
     /// A confident category from a *specific* POI bucket. Returns nil for the
-    /// broad `.store` bucket (which needs name/LLM analysis).
+    /// broad `.store` bucket and for `.foodMarket` (both need name/LLM analysis —
+    /// `.foodMarket` because Apple Maps tags wholesalers as food markets too).
     static func directCategory(for poi: MKPointOfInterestCategory?) -> StoreCategory? {
         switch poi {
         case .pharmacy:           .pharmacy
@@ -71,7 +72,6 @@ extension StoreCategory {
         case .gasStation:         .gasStation
         case .postOffice:         .postOffice
         case .bakery:             .bakery
-        case .foodMarket:         .grocery
         default:                  nil
         }
     }

@@ -49,7 +49,8 @@ actor StoreClassifier {
             return .excluded
         }
 
-        // 2. Confident broad-format chains.
+        // 2. Confident broad-format chains. Checked before the wholesale guard
+        //    so "Costco Wholesale" stays a general store.
         if Self.generalMerchandiseChains.contains(where: { lowered.contains($0) }) {
             return .general
         }
@@ -57,44 +58,65 @@ actor StoreClassifier {
             return .specific(Self.departmentSoftGoods)
         }
 
-        // 3. Specialty name hints (hardware, jeweler, pet store, …).
+        // 3. Wholesalers / distributors / B2B suppliers are not consumer stores.
+        if Self.wholesaleWords.contains(where: { lowered.contains($0) }) {
+            return .excluded
+        }
+
+        // 4. Specialty name hints (hardware, jeweler, pet store, …).
         let hintMatches = StoreCategory.nameHintCategories(for: name)
         if !hintMatches.isEmpty {
             return .specific(hintMatches)
         }
 
-        // 4. Confident specific POI buckets (pharmacy, bank, gas, post office,
-        //    bakery, food market).
+        // 5. A MapKit `.foodMarket` is only a *hint*. Apple Maps tags wholesalers
+        //    and B2B food suppliers as food markets too, so confirm with the
+        //    model that it's a consumer grocery before trusting it. (Offline:
+        //    fall back to grocery.)
+        if poiCategory == .foodMarket {
+            return await llmVerdict(
+                name: name,
+                hint: "Apple Maps lists this place as a grocery or food market.",
+                offlineFallback: .specific([.grocery])
+            )
+        }
+
+        // 6. Other confident specific POI buckets (pharmacy, bank, gas, post
+        //    office, bakery).
         if let direct = StoreCategory.directCategory(for: poiCategory) {
             return .specific([direct])
         }
 
-        // 5. Ambiguous (generic `.store` with an unrecognized name) — ask the
+        // 7. Ambiguous (generic `.store` with an unrecognized name) — ask the
         //    on-device model to reason about the store's format. If it can't say
         //    confidently, the store is excluded rather than guessed.
-        return await llmVerdict(name: name)
+        return await llmVerdict(name: name, hint: nil, offlineFallback: .excluded)
     }
 
     // MARK: - FoundationModels
 
-    private func llmVerdict(name: String) async -> StoreVerdict {
+    private func llmVerdict(name: String,
+                            hint: String?,
+                            offlineFallback: StoreVerdict) async -> StoreVerdict {
 #if canImport(FoundationModels)
         guard !name.isEmpty,
               SystemLanguageModel.default.availability == .available else {
-            return .excluded
+            return offlineFallback
         }
         do {
             let session = LanguageModelSession(instructions: Self.instructions)
+            var prompt = "Store name: \"\(name)\""
+            if let hint { prompt += "\n\(hint)" }
             let response = try await session.respond(
-                to: "Store name: \"\(name)\"",
+                to: prompt,
                 generating: StoreClassification.self
             )
             return Self.verdict(from: response.content)
         } catch {
-            return .excluded
+            return offlineFallback
         }
 #else
-        return .excluded
+        return offlineFallback
 #endif
     }
 
@@ -143,6 +165,10 @@ actor StoreClassifier {
       tattoo parlors, dry cleaners); and any store too unclear to place.
 
     Rules:
+    - Only consumer-facing retail stores count. Exclude wholesalers, \
+      distributors, importers/exporters, and business-to-business suppliers — \
+      even when their name mentions food or groceries — because the public does \
+      not shop there.
     - A store must sell a real RANGE of a category's goods to earn it. A shop \
       selling only one or two food items is NOT grocery — it is excluded.
     - A business named only after a person (e.g. "Jane Smith", "Brianna \
@@ -184,6 +210,14 @@ actor StoreClassifier {
         "walmart", "target", "costco", "sam's club", "bj's wholesale", "meijer",
         "fred meyer", "kmart", "dollar general", "dollar tree", "family dollar",
         "five below", "big lots", "supercenter"
+    ]
+
+    /// Names that mark a place as wholesale / B2B rather than a consumer store.
+    /// Checked after the general-merchandise chains so "Costco Wholesale" is safe.
+    static let wholesaleWords: [String] = [
+        "wholesale", "distributor", "distribution", "importer", "import & export",
+        "import/export", "cash & carry", "restaurant depot", "food service supply",
+        "trading co", "trading company"
     ]
 
     static let departmentStoreChains: [String] = [
